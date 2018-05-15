@@ -5,8 +5,9 @@ require(tfestimators)
 mtcars_input_fn <- function(data) {
   # Returns input function for subset of data
   input_fn(data,
-           features = c("drat", "mpg", "am"),
-           response = "vs")
+    features = c("drat", "mpg", "am"),
+    response = "vs"
+  )
 }
 
 lin_cols <- feature_columns(column_numeric("mpg"))
@@ -14,10 +15,11 @@ dnn_cols <- feature_columns(column_numeric("drat"))
 
 # Classifier
 classifier <- dnn_linear_combined_classifier(
-                linear_feature_columns = lin_cols,
-                dnn_feature_columns = dnn_cols,
-                dnn_hidden_units = c(3L, 3L),
-                dnn_optimizer = "Adagrad")
+  linear_feature_columns = lin_cols,
+  dnn_feature_columns = dnn_cols,
+  dnn_hidden_units = c(3L, 3L),
+  dnn_optimizer = "Adagrad"
+)
 
 # Sample data for training and testing sets
 idx <- sample(1:nrow(mtcars), size = 0.80 * nrow(mtcars))

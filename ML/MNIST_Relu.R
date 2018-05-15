@@ -21,15 +21,18 @@ bias_variable <- function(shape) {
 
 conv2d <- function(x, W) {
   # Creates a convolutional operator
-  tf$nn$conv2d(x, W, strides = c(1L, 1L, 1L, 1L),
-               padding = "SAME")
+  tf$nn$conv2d(x, W,
+    strides = c(1L, 1L, 1L, 1L),
+    padding = "SAME"
+  )
 }
 
 max_pool_2x2 <- function(x) {
   tf$nn$max_pool(x,
-                 ksize = c(1L, 2L, 2L, 1L),
-                 strides = c(1L, 2L, 2L, 1L),
-                 padding = "SAME")
+    ksize = c(1L, 2L, 2L, 1L),
+    strides = c(1L, 2L, 2L, 1L),
+    padding = "SAME"
+  )
 }
 # placeholders for images to be analyzed and their tags
 x <- tf$placeholder(tf$float32, shape(NULL, 784L))
@@ -65,7 +68,7 @@ W_fc1 <- weight_variable(shape(7L * 7L * 64L, 1024L))
 b_fc1 <- bias_variable(shape(1024L))
 # Pool from the resulting 64 7 x 7 patches into a 1D 1024 tensor
 h_pool2_flat <- tf$reshape(h_pool2, shape(-1L, 7L * 7L * 64L))
-h_fc1 <- tf$nn$relu(tf$matmul(h_pool2_flat, W_fc1) +  b_fc1)
+h_fc1 <- tf$nn$relu(tf$matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 # Dropout
 # trim some results to reduce overfitting
@@ -83,7 +86,8 @@ y_conv <- tf$nn$softmax(tf$matmul(h_fc1_drop, W_fc2) + b_fc2)
 # Intuition: "Just how bad was the prediction by the neural net compared to
 # what was expected?"
 cross_entropy <- tf$reduce_mean(-tf$reduce_sum(y_ * tf$log(y_conv),
-                                               reduction_indices = 1L))
+  reduction_indices = 1L
+))
 
 # Optimize the neural net with the Adam method, minimizing cross-entropy
 train_step <- tf$train$AdamOptimizer(1e-4)$minimize(cross_entropy)
@@ -99,16 +103,18 @@ accuracy <- tf$reduce_mean(tf$cast(correct_prediction, tf$float32))
 sess$run(tf$global_variables_initializer())
 
 
-#Logging every 100 iterations
+# Logging every 100 iterations
 for (i in 1:20000) {
   batch <- mnist$train$next_batch(50L)
   if (i %% 100 == 0) {
     train_accuracy <- accuracy$eval(feed_dict = dict(
-      x = batch[[1]], y_ = batch[[2]], keep_prob = 1.0))
+      x = batch[[1]], y_ = batch[[2]], keep_prob = 1.0
+    ))
     cat(sprintf("step %d, training accuracy %g\n", i, train_accuracy))
   }
   train_step$run(feed_dict = dict(
-    x = batch[[1]], y_ = batch[[2]], keep_prob = 0.5))
+    x = batch[[1]], y_ = batch[[2]], keep_prob = 0.5
+  ))
 }
 
 # How did we do?
@@ -118,9 +124,11 @@ test_accuracy <- 0
 for (i in 1:nbatch) {
   batch <- mnist$test$next_batch(50L)
   test_accuracy <- test_accuracy +
-                   accuracy$eval(feed_dict = dict(x = batch[[1]],
-                                                  y_ = batch[[2]],
-                                                  keep_prob = 1.0))
+    accuracy$eval(feed_dict = dict(
+      x = batch[[1]],
+      y_ = batch[[2]],
+      keep_prob = 1.0
+    ))
 }
 # Report
 cat(sprintf("test accuracy %g", test_accuracy / nbatch))
