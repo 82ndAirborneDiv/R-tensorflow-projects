@@ -3,6 +3,22 @@
 # Adpted from the wonderful Tensorflow Cookbook by Nick McClure               #
 # =========================================================================== #
 
+# NOTE: Intuition
+# Unlike linear regression which attempts to find a line such that the margin
+# between each data point and the regression line is minimized, a linear SVM
+# takes two classes and attempts to find a line such that the margin between the
+# points of each class and the line is maximized. The result is not a line which
+# falls in the center of the clustering, but between the two clusters.
+# The "Support Vectors" are those points at the furthest most edge of each class
+# which "support" the class margin. For higher dimensional data, the result can
+# be an n-dimensional hyperplane.
+
+# NOTE: Classifying Iris
+# Setosa happens to be a very easy target for linear classification using
+# sepal length and petal length as predictors. Virginica and versicolor are
+# poorly differentiated by these two predictors, and linear classification will
+# perform poorly--often failing to converge altogether.
+
 library(reticulate)
 library(tensorflow)
 library(ggplot2)
@@ -16,7 +32,7 @@ soft_margin <- 0.01
 x_vals <- as.matrix(iris[, c("Sepal.Length", "Petal.Length")])
 
 
-# Create a binary label for identifying setosa
+# Create a binary label for identifying the species
 # We want to store this as a matrix so it reads in "long" when we pass it
 # to the feed dict.
 y_vals <- matrix(NA_integer_, ncol = 1, nrow = dim(iris)[1L])
@@ -88,6 +104,7 @@ test_accuracy <- vector(mode = "numeric")
 # Training loop
 # Run the model 500 times
 for (i in seq_len(500)) {
+  # NOTE: Numpy arrays are, of course, 0-indexed.
   rand_index <- sample(seq_len(batch_size) - 1L, batch_size)
   rand_x <- x_train[rand_index]
   rand_y <- y_train[rand_index]
@@ -108,7 +125,7 @@ for (i in seq_len(500)) {
     )
   )
 
-  append(loss_vec, temp_loss)
+  loss_vec[i] <- temp_loss
 
   train_acc_temp <- session$run(
     accuracy,
@@ -118,7 +135,7 @@ for (i in seq_len(500)) {
     )
   )
 
-  append(train_accuracy, train_acc_temp)
+  train_accuracy[i] <- train_acc_temp
 
   test_acc_temp <- session$run(
     accuracy,
@@ -128,7 +145,7 @@ for (i in seq_len(500)) {
     )
   )
 
-  append(test_accuracy, test_acc_temp)
+  test_accuracy[i] <- test_acc_temp
 
   # Give a nice visual output of how we are performing
   if (i %% 50 == 0) {
@@ -138,6 +155,8 @@ for (i in seq_len(500)) {
     plot <- ggplot(iris, aes(y = Sepal.Length, x = Petal.Length, color = Species)) +
       geom_point() +
       stat_function(fun = function(x) x * slope + y_int, geom = "line") +
+      stat_function(fun = function(x) x * slope + y_int + 1, geom = "line", linetype = "dashed") +
+      stat_function(fun = function(x) x * slope + y_int - 1, geom = "line", linetype = "dashed") +
       theme_bw() +
       labs(
         title = sprintf("Iris linear SVM -- step %i", i),
