@@ -1,6 +1,6 @@
 # =========================================================================== #
 # Linear SVM applied to the iris dataset                                      #
-# Adpted from the wonderful Tensorflow Cookbook by Nick McClure               #
+# Adapted from the wonderful Tensorflow Cookbook by Nick McClure               #
 # =========================================================================== #
 
 # NOTE: Intuition

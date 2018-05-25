@@ -1,6 +1,6 @@
 # =========================================================================== #
 # Kernel SVM classification of circular groupings                             #
-# Adpted from the wonderful Tensorflow Cookbook by Nick McClure               #
+# Adapted from the wonderful Tensorflow Cookbook by Nick McClure               #
 # =========================================================================== #
 
 library(reticulate)
