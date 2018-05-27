@@ -1,6 +1,6 @@
 # =========================================================================== #
 # Kernel SVM classification of circular groupings                             #
-# Adapted from the wonderful Tensorflow Cookbook by Nick McClure               #
+# Adapted from the wonderful Tensorflow Cookbook by Nick McClure              #
 # =========================================================================== #
 
 library(reticulate)
@@ -54,7 +54,6 @@ alpha <- tf$constant(soft_margin)
 
 # Define SVM kernel tensors
 with(tf$name_scope("SVM"), {
-  # A <- tf$Variable(tf$random_normal(shape(2L, 1L)))
   b <- tf$Variable(tf$random_normal(shape(1L, batch_size)))
   gamma <- tf$constant(-50)
 
@@ -114,8 +113,8 @@ session$run(init)
 
 
 # Allocate vectors to store accuracy and loss values
-loss_vec <- vector(mode = "numeric")
-batch_accuracy <- vector(mode = "numeric")
+loss_vec <- vector(mode = "numeric", length = 1000L)
+batch_accuracy <- vector(mode = "numeric", length = 1000L)
 
 # Training loop
 # Run the model 1000 times
@@ -234,5 +233,4 @@ loss_plot <- ggplot(loss_df, aes(x = iter, y = loss)) +
   theme_bw()
 
 # Give final output plot
-final_plot <- grid.arrange(plot, accuracy_plot, loss_plot, ncol = 3)
-print(final_plot)
+grid.arrange(plot, accuracy_plot, loss_plot, ncol = 3)

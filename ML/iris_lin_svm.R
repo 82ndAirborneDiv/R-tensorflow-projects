@@ -1,6 +1,6 @@
 # =========================================================================== #
 # Linear SVM applied to the iris dataset                                      #
-# Adapted from the wonderful Tensorflow Cookbook by Nick McClure               #
+# Adapted from the wonderful Tensorflow Cookbook by Nick McClure              #
 # =========================================================================== #
 
 # NOTE: Intuition
@@ -97,9 +97,9 @@ session$run(init)
 
 
 # Allocate vectors to store accuracy and loss values
-loss_vec <- vector(mode = "numeric")
-train_accuracy <- vector(mode = "numeric")
-test_accuracy <- vector(mode = "numeric")
+loss_vec <- vector(mode = "numeric", length = 500L)
+train_accuracy <- vector(mode = "numeric", length = 500L)
+test_accuracy <- vector(mode = "numeric", length = 500L)
 
 # Training loop
 # Run the model 500 times
