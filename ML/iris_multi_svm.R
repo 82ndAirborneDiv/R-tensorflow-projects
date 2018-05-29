@@ -112,7 +112,6 @@ batch_accuracy <- vector(mode = "numeric", length = iter_length)
 # Training loop
 # Run the model 100 times
 for (i in seq_len(iter_length)) {
-  # NOTE: Numpy arrays are, of course, 0-indexed.
   rand_index <- sample(seq(dim(iris)[1L]), batch_size)
   rand_x <- x_vals[rand_index, ]
   rand_y <- y_vals[, rand_index]
@@ -183,8 +182,6 @@ for (i in seq_len(iter_length)) {
     colnames(points) <- c("x", "y", "label")
 
     # Plot the grid then overlay the data points
-    # NOTE: Extracting the data from a numpy array to plot is a little
-    # hacky.
     plot <- ggplot(mesh, aes(x, y, fill = pred)) +
       geom_raster() +
       geom_point(
