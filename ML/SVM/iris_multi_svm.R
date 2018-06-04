@@ -90,7 +90,7 @@ prediction_output <- tf$matmul(
 prediction <- tf$argmax(prediction_output - tf$expand_dims(tf$reduce_mean(prediction_output, 1L), 1L), 0L)
 accuracy <- tf$reduce_mean(
   tf$cast(
-    tf$equal(prediction, tf$arg_max(y_target, 0L)),
+    tf$equal(prediction, tf$argmax(y_target, 0L)),
     dtype = tf$float32)
   )
 
