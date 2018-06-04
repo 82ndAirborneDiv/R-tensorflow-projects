@@ -1,14 +1,14 @@
 # =========================================================================== #
-# Convolutional neural network classification of circular groupings           #
+# Two layer FF NN classification of circular groupings                        #
 # (Not really) Adapted from the wonderful Tensorflow Cookbook by Nick McClure #
 # =========================================================================== #
 
 # NOTE: This is just me messing around. I saw last time that a simple topology
-# is not sufficient to explain more complex patterned data (which is not linearaly separable).
-# That is often stated as a preface to modelling with MLPs, so the results were not all
-# that interesting.
-# For this, I will modify the original topology, and add a convolutional layer
-# to attempt to account for data which are not linearly separable.
+# is not sufficient to explain more complex patterned data (which is not linearly separable).
+# That is often stated as a preface to modelling with MLPs, so the results
+# were not all that interesting.
+# For this, I will modify the original topology, and add an additional layer to
+# classify the data
 
 # This provides a very clear illustration of how limited a simple FF neural network
 # is in dealing with more complex clustering patterns.
@@ -24,10 +24,10 @@ library(gridExtra)
 source("make_circles.R")
 
 # Adjust as desired
-hidden_neurons <- 100L
+hidden_neurons <- c(10L, 3L)
 train_iter <- 1000L
 n_samples <- 1000L
-batch_size <- 300L
+batch_size <- 350L
 circle <- "outer"
 
 # Create dummy data to classify using make_circles()
@@ -40,8 +40,10 @@ data <- make_circles(samples = n_samples, factor = 0.5, noise = 0.1)
 # to the feed dict.
 # We make it 1-hot, so it becomes simple to calculate divergence or cross-entropy
 # 1-hot, meaning dummy-code
-y_vals <- matrix(NA_integer_, ncol = 1, nrow = n_samples)
-y_vals[, 1] <- as.integer(data[["circ"]] == circle)
+y_vals <- vapply(
+  unique(data$circ), function(x) {
+  as.integer(data[["circ"]] == x)
+}, integer(n_samples))
 
 # Cast the input data as a matrix so tensorflow doesn't at us
 x_vals <- as.matrix(data[, c("x", "y")])
@@ -62,12 +64,12 @@ col_normalize <- function(x) {
 # Create our training and testing datasets
 training_set <- list(
   x = apply(x_vals[train_idx, ], 2L, col_normalize),
-  y = y_vals[train_idx, ,drop = FALSE]
+  y = y_vals[train_idx, ]
 )
 
 test_set <- list(
   x = apply(x_vals[-train_idx, ], 2L, col_normalize),
-  y = y_vals[-train_idx, ,drop = FALSE]
+  y = y_vals[-train_idx, ]
 )
 
 # Make a dataframe containing the space that the input data occupies
@@ -81,21 +83,28 @@ mesh <- expand.grid(
 # Define input layer
 with(tf$name_scope("input"), {
   x_data <- tf$placeholder(tf$float32, shape(NULL, 2L), name = "x_data")
-  y_target <- tf$placeholder(tf$float32, shape(NULL, 1L), name = "y_labels")
+  y_target <- tf$placeholder(tf$float32, shape(NULL, 2L), name = "y_labels")
 })
 
 # Define the hidden layer
-with(tf$name_scope("hidden"), {
-  A1 <- tf$Variable(tf$random_normal(shape(2L, hidden_neurons)))
-  b1 <- tf$Variable(tf$random_normal(shape(hidden_neurons)))
+with(tf$name_scope("hidden-1"), {
+  A1 <- tf$Variable(tf$random_normal(shape(2L, hidden_neurons[1])))
+  b1 <- tf$Variable(tf$random_normal(shape(hidden_neurons[1])))
   hid_out <- tf$nn$sigmoid(tf$add(tf$matmul(x_data, A1), b1))
+})
+
+# Define second hidden layer
+with(tf$name_scope("hidden-2"), {
+  A2 <- tf$Variable(tf$random_normal(shape(hidden_neurons[1], hidden_neurons[2])))
+  b2 <- tf$Variable(tf$random_normal(shape(hidden_neurons[2])))
+  hid_out2 <- tf$nn$sigmoid(tf$add(tf$matmul(hid_out, A2), b2))
 })
 
 # Define the output layer
 with(tf$name_scope("output"), {
-  A2 <- tf$Variable(tf$random_normal(shape(hidden_neurons, 2L)))
-  b2 <- tf$Variable(tf$random_normal(shape(2L)))
-  output <- tf$nn$sigmoid(tf$add(tf$matmul(hid_out, A2), b2))
+  A3 <- tf$Variable(tf$random_normal(shape(hidden_neurons[2], 2L)))
+  b3 <- tf$Variable(tf$random_normal(shape(2L)))
+  output <- tf$nn$softmax(tf$add(tf$matmul(hid_out2, A3), b3))
   prediction <- tf$argmax(output, 1L)
 })
 
@@ -111,18 +120,14 @@ accuracy <- tf$reduce_mean(
   tf$cast(tf$equal(prediction, tf$argmax(y_target, 1L)), tf$float32)
 )
 
-
 # Declare training optimizer
-# NOTE: Here we could use Adam or whatever. I've used standard gradient descent
-# for no reason in particular
-opt <- tf$train$GradientDescentOptimizer(learning_rate = 0.002)
+opt <- tf$train$AdamOptimizer(learning_rate = 0.02)
 train_step <- opt$minimize(loss)
 
 # Initialize variables and start session
 init <- tf$global_variables_initializer()
 session <- tf$Session()
 session$run(init)
-
 
 # Allocate vectors to store accuracy and loss values
 loss_vec <- vector(mode = "numeric", length = train_iter)
@@ -134,7 +139,7 @@ for (i in seq_len(train_iter)) {
   # Take just a sample of the training set each iteration
   rand_index <- sample(seq_len(batch_size), batch_size)
   rand_x <- training_set$x[rand_index, ]
-  rand_y <- training_set$y[rand_index, ,drop = FALSE]
+  rand_y <- training_set$y[rand_index, ]
 
   # Train our model
   session$run(
@@ -165,8 +170,8 @@ for (i in seq_len(train_iter)) {
 
   if (i %% 50 == 0) {
     # Every 50 steps give a visual update of how we are doing
-
     # Generate predictions for our input data mesh
+    # This is a bit sloppy, since we recalculate the normalized values each time.
     pred <- session$run(
       prediction,
       feed_dict = dict(
@@ -177,8 +182,6 @@ for (i in seq_len(train_iter)) {
     mesh$pred <- factor(pred, labels = c("inner", "outer")[unique(pred) + 1L])
 
     # Plot the grid then overlay the data points
-    # NOTE: Extracting the data from a numpy array to plot is a little
-    # hacky.
     plot <- ggplot(mesh, aes(x, y, fill = pred)) +
       geom_raster() +
       geom_point(
@@ -186,7 +189,7 @@ for (i in seq_len(train_iter)) {
         aes(x, y, shape = circ),
         inherit.aes = FALSE) +
       labs(
-        title = sprintf("Single layer FF NN (%i neurons) -- Step %i", hidden_neurons, i),
+        title = sprintf("Two layer FF NN (%i x %i neurons) -- Step %i", hidden_neurons[1], hidden_neurons[2], i),
         subtitle = sprintf("Loss = %.2f, Accuracy = %.2f", loss_vec[i], batch_accuracy[i]),
         fill = "Predicted",
         shape = "Actual"
