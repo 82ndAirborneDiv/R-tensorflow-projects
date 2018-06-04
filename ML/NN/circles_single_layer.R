@@ -8,8 +8,9 @@
 
 # This provides a very clear illustration of how limited a simple FF neural network
 # is in dealing with more complex clustering patterns.
-# If we do not use a convolutional kernel function, we are limiting the dimensionality
-# of our prediction space, and embedded circular clustering cannot be well explained.
+# If we do not use a convolutional kernel function or add another hidden layer,
+# we are limiting the dimensionality of our prediction space and data which is
+# non-linearly separable cannot be well classified.
 
 library(reticulate)
 library(tensorflow)
@@ -24,7 +25,6 @@ hidden_neurons <- 100L
 train_iter <- 1000L
 n_samples <- 1000L
 batch_size <- 300L
-circle <- "outer"
 
 # Create dummy data to classify using make_circles()
 # NOTE: I make the inner circle 50% smaller and add a bit of gaussian noise
@@ -36,8 +36,10 @@ data <- make_circles(samples = n_samples, factor = 0.5, noise = 0.1)
 # to the feed dict.
 # We make it 1-hot, so it becomes simple to calculate divergence or cross-entropy
 # 1-hot, meaning dummy-code
-y_vals <- matrix(NA_integer_, ncol = 1, nrow = n_samples)
-y_vals[, 1] <- as.integer(data[["circ"]] == circle)
+y_vals <- vapply(
+  c("inner", "outer"), function(x) {
+  as.integer(data[["circ"]] == x)
+}, integer(n_samples))
 
 # Cast the input data as a matrix so tensorflow doesn't at us
 x_vals <- as.matrix(data[, c("x", "y")])
@@ -58,12 +60,12 @@ col_normalize <- function(x) {
 # Create our training and testing datasets
 training_set <- list(
   x = apply(x_vals[train_idx, ], 2L, col_normalize),
-  y = y_vals[train_idx, ,drop = FALSE]
+  y = y_vals[train_idx, ]
 )
 
 test_set <- list(
   x = apply(x_vals[-train_idx, ], 2L, col_normalize),
-  y = y_vals[-train_idx, ,drop = FALSE]
+  y = y_vals[-train_idx, ]
 )
 
 # Make a dataframe containing the space that the input data occupies
@@ -77,7 +79,7 @@ mesh <- expand.grid(
 # Define input layer
 with(tf$name_scope("input"), {
   x_data <- tf$placeholder(tf$float32, shape(NULL, 2L), name = "x_data")
-  y_target <- tf$placeholder(tf$float32, shape(NULL, 1L), name = "y_labels")
+  y_target <- tf$placeholder(tf$float32, shape(NULL, 2L), name = "y_labels")
 })
 
 # Define the hidden layer
@@ -91,7 +93,7 @@ with(tf$name_scope("hidden"), {
 with(tf$name_scope("output"), {
   A2 <- tf$Variable(tf$random_normal(shape(hidden_neurons, 2L)))
   b2 <- tf$Variable(tf$random_normal(shape(2L)))
-  output <- tf$nn$sigmoid(tf$add(tf$matmul(hid_out, A2), b2))
+  output <- tf$nn$softmax(tf$add(tf$matmul(hid_out, A2), b2))
   prediction <- tf$argmax(output, 1L)
 })
 
@@ -173,8 +175,6 @@ for (i in seq_len(train_iter)) {
     mesh$pred <- factor(pred, labels = c("inner", "outer")[unique(pred) + 1L])
 
     # Plot the grid then overlay the data points
-    # NOTE: Extracting the data from a numpy array to plot is a little
-    # hacky.
     plot <- ggplot(mesh, aes(x, y, fill = pred)) +
       geom_raster() +
       geom_point(
