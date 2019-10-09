@@ -9,7 +9,7 @@ library(ggplot2)
 library(gridExtra)
 
 # Import the make_circles() function I wrote to make test data
-source(file.path("..", "make_circles.R"))
+source("R/util.R"))
 
 # Adjust as desired
 batch_size <- 350L

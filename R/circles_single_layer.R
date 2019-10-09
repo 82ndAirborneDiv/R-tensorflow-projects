@@ -18,7 +18,7 @@ library(ggplot2)
 library(gridExtra)
 
 # Import the make_circles() function I wrote to make test data
-source("make_circles.R")
+source("R/util.R")
 
 # Adjust as desired
 hidden_neurons <- 100L
